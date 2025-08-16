@@ -1,12 +1,11 @@
 const prisma = require("../lib/prisma");
-const bcryp = require("bcrypt");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res) => {
   const { name, email, password, role } = req.body;
-
   try {
-    const hashedPassword = await bcryp.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
         name,
@@ -28,7 +27,7 @@ exports.login = async (req, res) => {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return res.status(404).json({ error: "Usuário não encontrado" });
 
-    const isPasswordValid = await bcryp.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid)
       return res.status(401).json({ error: "Senha incorreta" });
 
@@ -71,13 +70,13 @@ exports.resetPassword = async (req, res) => {
     if (!user)
       return res.status(400).json({ error: "Token inválido ou expirado" });
 
-    const hashed = await bcryp.hash(newPassword, 10);
+    const hashed = await bcrypt.hash(newPassword, 10);
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
         password: hashed,
-        resetToken: null, 
+        resetToken: null,
       },
     });
 
