@@ -95,3 +95,33 @@ exports.deleteAccount = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.updateConsultationDuration = async (req, res) => {
+  try {
+    if (req.user.role !== "DOCTOR") {
+      return res
+        .status(403)
+        .json({ error: "Somente médicos podem alterar a duração da consulta" });
+    }
+
+    const { duration } = req.body;
+    if (!duration || duration <= 0) {
+      return res.status(4000).json({ error: "Duração inválida" });
+    }
+
+    const doctor = await prisma.user.update({
+      where: {
+        id: req.user.userId,
+      },
+      data: { consultationDuration: duration },
+    });
+    return res
+      .status(200)
+      .json({ message: "Duração atualizada com sucesso", doctor });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ error: "Erro ao atualizar duração da consulta" });
+  }
+};

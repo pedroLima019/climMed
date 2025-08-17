@@ -11,6 +11,7 @@ CREATE TABLE "public"."users" (
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "role" "public"."Role" NOT NULL,
+    "consultationDuration " Int
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
    
 

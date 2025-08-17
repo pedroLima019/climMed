@@ -19,10 +19,15 @@ exports.createAppointment = async (req, res) => {
       return res.status(404).json({ error: "Médico não encontrado" });
     }
 
+    if (!doctor.consultationDuration) {
+      return res
+        .status(400)
+        .json({ error: "Médico não definiu a duração da consulta" });
+    }
+
     const appointmentDate = new Date(date);
     const weekday = appointmentDate.getDay();
 
-    // 🔹 Verificar se o médico tem disponibilidade no dia
     const availability = await prisma.doctorAvailability.findFirst({
       where: { doctorId: doctor.id, weekday },
     });
@@ -33,8 +38,10 @@ exports.createAppointment = async (req, res) => {
         .json({ error: "Médico não possui disponibilidade neste dia" });
     }
 
+    // Calcular minutos do início da consulta
     const appointmentMinutes =
       appointmentDate.getHours() * 60 + appointmentDate.getMinutes();
+
     const [startHour, startMinute] = availability.startTime
       .split(":")
       .map(Number);
@@ -43,38 +50,37 @@ exports.createAppointment = async (req, res) => {
     const startTime = startHour * 60 + startMinute;
     const endTime = endHour * 60 + endMinute;
 
-    if (appointmentMinutes < startTime || appointmentMinutes >= endTime) {
+    const appointmentEnd = appointmentMinutes + doctor.consultationDuration;
+
+    // Validar se o horário da consulta + duração cabe dentro da disponibilidade
+    if (appointmentMinutes < startTime || appointmentEnd > endTime) {
       return res.status(400).json({
-        error: `Horário fora da disponibilidade do médico (${availability.startTime} - ${availability.endTime})`,
+        error: `Consulta excede disponibilidade do médico (${availability.startTime} - ${availability.endTime})`,
       });
     }
 
-    const doctorConflict = await prisma.appointment.findFirst({
+    // Conflitos: precisa verificar se o intervalo bate com outra consulta
+    const conflict = await prisma.appointment.findFirst({
       where: {
         doctorId: Number(doctorId),
-        date: appointmentDate,
         status: "SCHEDULED",
+        OR: [
+          {
+            date: {
+              gte: appointmentDate,
+              lt: new Date(
+                appointmentDate.getTime() + doctor.consultationDuration * 60000
+              ),
+            },
+          },
+        ],
       },
     });
 
-    if (doctorConflict) {
+    if (conflict) {
       return res
         .status(400)
-        .json({ error: "O médico já possui uma consulta neste horário" });
-    }
-
-    const patientConflict = await prisma.appointment.findFirst({
-      where: {
-        patientId,
-        date: appointmentDate,
-        status: "SCHEDULED",
-      },
-    });
-
-    if (patientConflict) {
-      return res
-        .status(400)
-        .json({ error: "Você já possui uma consulta neste horário" });
+        .json({ error: "Já existe uma consulta nesse horário" });
     }
 
     const appointment = await prisma.appointment.create({
