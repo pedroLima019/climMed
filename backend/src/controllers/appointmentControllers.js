@@ -19,16 +19,60 @@ exports.createAppointment = async (req, res) => {
       return res.status(404).json({ error: "Médico não encontrado" });
     }
 
-    const appointments = await prisma.appointment.create({
+    const appointmentDate = new Date(date);
+    const weekday = appointmentDate.getDay();
+    const availability = await prisma.doctorAvailability.findFirst({
+      where: { doctorId: doctor.id, weekday },
+    });
+
+    if (!availability) {
+      return res
+        .status(400)
+        .json({ error: "Médico não possui disponibilidade neste dia " });
+    }
+
+    const appointmentHour = appointmentDate.getHours();
+    const appointmentMinutes = appointmentDate.getMinutes();
+    const appointmentTime = appointmentHour * 60 + appointmentMinutes;
+
+    const [startHour, startMinute] = availability.startTime
+      .split(":")
+      .map(Number);
+    const [endHour, endMinute] = availability.endTime.split(":").map(Number);
+
+    const startTime = startHour * 60 + startMinute;
+    const endTime = endHour * 60 + endMinute;
+
+    if (appointmentTime < startTime || appointmentTime >= endTime) {
+      return res.status(400).json({
+        error: `Horario fora da disponibilidade do médico ${availability.startTime} - ${availability.endTime}`,
+      });
+    }
+
+    const conflict = await prisma.appointment.findFirst({
+      where: {
+        doctorId: Number(doctorId),
+        date: appointment,
+        status: "SCHEDULED",
+      },
+    });
+
+    if (conflict) {
+      return res
+        .status(400)
+        .json({ error: "Já existe uma agendada nesse horário" });
+    }
+
+    const appointment = await prisma.appointment.create({
       data: {
-        date: new Date(date),
+        date: appointmentDate,
         notes,
         patientId,
         doctorId: Number(doctorId),
       },
     });
 
-    return res.status(201).json(appointments);
+    return res.status(201).json(appointment);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Erro ao criar agendamento" });
