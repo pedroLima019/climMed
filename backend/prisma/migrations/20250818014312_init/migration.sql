@@ -11,9 +11,9 @@ CREATE TABLE "public"."users" (
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "role" "public"."Role" NOT NULL,
-    "consultationDuration " Int
+    "consultationDuration" INTEGER,
+    "resetToken" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-   
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -40,7 +40,8 @@ CREATE TABLE "public"."doctor_availability" (
 -- CreateTable
 CREATE TABLE "public"."appointments" (
     "id" SERIAL NOT NULL,
-    "date" TIMESTAMP(3) NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3) NOT NULL,
     "status" "public"."AppointmentStatus" NOT NULL DEFAULT 'SCHEDULED',
     "notes" TEXT,
     "patientId" INTEGER NOT NULL,

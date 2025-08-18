@@ -44,10 +44,11 @@ model DoctorAvailability {
 }
 
 model Appointment {
-  id     Int               @id @default(autoincrement())
-  date   DateTime
-  status AppointmentStatus @default(SCHEDULED)
-  notes  String? // observações do médico
+  id        Int               @id @default(autoincrement())
+  startDate DateTime          // início da consulta
+  endDate   DateTime          // fim da consulta
+  status    AppointmentStatus @default(SCHEDULED)
+  notes     String?
 
   // Relations
   patient   User @relation("PatientAppointments", fields: [patientId], references: [id])
@@ -59,6 +60,7 @@ model Appointment {
 
   @@map("appointments")
 }
+
 
 enum Role {
   PATIENT

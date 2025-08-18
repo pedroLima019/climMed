@@ -19,15 +19,13 @@ exports.createAppointment = async (req, res) => {
       return res.status(404).json({ error: "Médico não encontrado" });
     }
 
-    if (!doctor.consultationDuration) {
-      return res
-        .status(400)
-        .json({ error: "Médico não definiu a duração da consulta" });
-    }
+    const appointmentStart = new Date(date);
+    const consultationDuration = doctor.consultationDuration || 30;
+    const appointmentEnd = new Date(
+      appointmentStart.getTime() + consultationDuration * 60000
+    );
 
-    const appointmentDate = new Date(date);
-    const weekday = appointmentDate.getDay();
-
+    const weekday = appointmentStart.getDay();
     const availability = await prisma.doctorAvailability.findFirst({
       where: { doctorId: doctor.id, weekday },
     });
@@ -38,41 +36,34 @@ exports.createAppointment = async (req, res) => {
         .json({ error: "Médico não possui disponibilidade neste dia" });
     }
 
-    // Calcular minutos do início da consulta
-    const appointmentMinutes =
-      appointmentDate.getHours() * 60 + appointmentDate.getMinutes();
+    const startMinutes =
+      appointmentStart.getHours() * 60 + appointmentStart.getMinutes();
+    const endMinutes =
+      appointmentEnd.getHours() * 60 + appointmentEnd.getMinutes();
 
-    const [startHour, startMinute] = availability.startTime
+    const [availStartHour, availStartMin] = availability.startTime
       .split(":")
       .map(Number);
-    const [endHour, endMinute] = availability.endTime.split(":").map(Number);
+    const [availEndHour, availEndMin] = availability.endTime
+      .split(":")
+      .map(Number);
 
-    const startTime = startHour * 60 + startMinute;
-    const endTime = endHour * 60 + endMinute;
+    const availStart = availStartHour * 60 + availStartMin;
+    const availEnd = availEndHour * 60 + availEndMin;
 
-    const appointmentEnd = appointmentMinutes + doctor.consultationDuration;
-
-    // Validar se o horário da consulta + duração cabe dentro da disponibilidade
-    if (appointmentMinutes < startTime || appointmentEnd > endTime) {
+    if (startMinutes < availStart || endMinutes > availEnd) {
       return res.status(400).json({
-        error: `Consulta excede disponibilidade do médico (${availability.startTime} - ${availability.endTime})`,
+        error: `Consulta fora da disponibilidade do médico (${availability.startTime} - ${availability.endTime})`,
       });
     }
 
-    // Conflitos: precisa verificar se o intervalo bate com outra consulta
     const conflict = await prisma.appointment.findFirst({
       where: {
         doctorId: Number(doctorId),
         status: "SCHEDULED",
-        OR: [
-          {
-            date: {
-              gte: appointmentDate,
-              lt: new Date(
-                appointmentDate.getTime() + doctor.consultationDuration * 60000
-              ),
-            },
-          },
+        AND: [
+          { startDate: { lt: appointmentEnd } },
+          { endDate: { gt: appointmentStart } },
         ],
       },
     });
@@ -85,7 +76,8 @@ exports.createAppointment = async (req, res) => {
 
     const appointment = await prisma.appointment.create({
       data: {
-        date: appointmentDate,
+        startDate: appointmentStart,
+        endDate: appointmentEnd,
         notes,
         patientId,
         doctorId: Number(doctorId),
