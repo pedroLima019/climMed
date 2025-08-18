@@ -80,6 +80,8 @@ exports.getAvailableSlots = async (req, res) => {
     if (!doctor || doctor.role !== "DOCTOR") {
       return res.status(404).json({ error: "Médico não encontrado" });
     }
+
+    const consultationDuration = doctor.consultationDuration || 30;
     const day = new Date(date);
     const weekday = day.getDay();
 
@@ -88,9 +90,7 @@ exports.getAvailableSlots = async (req, res) => {
     });
 
     if (!availability) {
-      return res
-        .status(400)
-        .json({ error: "Médico não possui disponibilidade neste dia " });
+      return res.status(400).json([]);
     }
 
     const [startHour, startMinute] = availability.startTime
@@ -107,7 +107,7 @@ exports.getAvailableSlots = async (req, res) => {
 
     while (current < end) {
       slots.push(new Date(current));
-      current = new Date(current.getTime() + 30 * 60000);
+      current = new Date(current.getTime() + consultationDuration * 60000);
     }
 
     const appointments = await prisma.appointment.findMany({
@@ -116,15 +116,31 @@ exports.getAvailableSlots = async (req, res) => {
         status: "SCHEDULED",
         date: {
           gte: new Date(day.setHours(0, 0, 0, 0)),
-          lt: new Date(day.setHours(23, 59, 59, 999)),
+        },
+        endDate: {
+          lte: new Date(targetDate.setHours(23, 59, 59, 999)),
         },
       },
     });
 
-    const busySlots = appointments.map((a) => a.date.getTime());
+    const freeSlots = slots.filter((slots) => {
+      return !appointments.some((appt) => {
+        const slotEnd = new Date(
+          slots.getTime() + consultationDuration * 60000
+        );
+        return appt.startDate < slotEnd && appt.endDate > slots;
+      });
+    });
 
-    const freeSlots = slots.filter((s) => !busySlots.includes(s.getTime()));
-    return res.json({ doctorId, date, freeSlots });
+    const formattedSlots = freeSlots.map((s) => {
+      const day = String(s.getDay()).padStart(2, "0");
+      const month = String(s.getMonth() + 1).padStart(2, "0");
+      const fullYear = s.getFullYear();
+      const hours = String(s.getHours()).padStart(2, "0");
+      const minutes = String(s.getMinutes()).padStart(2, "0");
+      return `${day}, ${month}, ${fullYear} ${hours}:${minutes}`;
+    });
+    return res.json({ doctorId, date, availableSlots: formattedSlots });
   } catch (error) {
     console.error(error);
     return res
