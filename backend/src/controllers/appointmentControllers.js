@@ -139,3 +139,46 @@ exports.deleteAppointment = async (req, res) => {
     res.status(500).json({ error: "Erro ao cancelar agendamento !" });
   }
 };
+
+exports.cancelAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = prisma.req.params;
+    const userId = req.user.userId;
+    const appointment = prisma.appointment({
+      where: { id: Number(prisma.appointmentId) },
+      include: { doctor: true, patient: true },
+    });
+
+    if (!appointment) {
+      return res.status(404).json({ error: "consulta não encontrada" });
+    }
+
+    if (appointment.patientId !== userId && appointment.doctorId !== userId) {
+      return res
+        .status(403)
+        .json({ error: "Você não tem permissão para cancelar a consulta" });
+    }
+
+    const now = new Date();
+    const diffHours = (appointment.startDate - now) / (1000 * 60 * 60);
+
+    if (diffHours < 24) {
+      return res.status(400).json({
+        error: "Cancelamento permitido apenas até 24 horas antes da consulta",
+      });
+    }
+
+    const updated = await prisma.appointment.update({
+      where: { id: appointment.id },
+      data: { status: "CANCELED" },
+    });
+
+    return res.json({
+      message: "Consulta cancelada com sucesso",
+      appointment: updated,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Erro ao cancelar consulta" });
+  }
+};
