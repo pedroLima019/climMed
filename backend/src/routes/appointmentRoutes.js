@@ -4,8 +4,21 @@ const appointmentController = require("../controllers/appointmentControllers");
 const authMiddleware = require("../middleware/auth");
 
 router.post("/", authMiddleware, appointmentController.createAppointment);
-router.delete("/:id", authMiddleware, appointmentController.deleteAppointment);
 router.get("/", authMiddleware, appointmentController.getAppointments);
-router.get("/available", authMiddleware, appointmentController.getAppointments);
+router.patch(
+  "/:id/cancel",
+  authMiddleware,
+  appointmentController.cancelAppointment
+);
+router.get(
+  "/history",
+  authMiddleware,
+  appointmentController.getPastAppointments
+);
+router.post(
+  "/available-slots",
+  authMiddleware,
+  appointmentController.getAvailableSlots
+);
 
 module.exports = router;

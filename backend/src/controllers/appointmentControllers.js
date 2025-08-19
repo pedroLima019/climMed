@@ -81,6 +81,7 @@ exports.createAppointment = async (req, res) => {
         notes,
         patientId,
         doctorId: Number(doctorId),
+        status: "SCHEDULED",
       },
     });
 
@@ -109,48 +110,21 @@ exports.getAppointments = async (req, res) => {
   }
 };
 
-exports.deleteAppointment = async (req, res) => {
+/**
+ * Cancelamento respeitando 24h antes
+ */
+exports.cancelAppointment = async (req, res) => {
   try {
-    const appointmentId = Number(req.params.id);
+    const { id } = req.params;
     const userId = req.user.userId;
 
     const appointment = await prisma.appointment.findUnique({
-      where: { id: appointmentId },
-    });
-
-    if (!appointment) {
-      return res.status(404).json({ error: "Agendamento não encontrado" });
-    }
-    if (appointment.patientId !== userId && appointment.doctorId !== userId) {
-      return res.status(403).json({
-        error: "Você não tem permissão para cancelar esse agendamento ",
-      });
-    }
-
-    await prisma.appointment.delete({
-      where: { id: appointmentId },
-    });
-
-    return res
-      .status(203)
-      .json({ message: "Agendamento cancelado com sucesso !" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao cancelar agendamento !" });
-  }
-};
-
-exports.cancelAppointment = async (req, res) => {
-  try {
-    const { appointmentId } = prisma.req.params;
-    const userId = req.user.userId;
-    const appointment = prisma.appointment({
-      where: { id: Number(prisma.appointmentId) },
+      where: { id: Number(id) },
       include: { doctor: true, patient: true },
     });
 
     if (!appointment) {
-      return res.status(404).json({ error: "consulta não encontrada" });
+      return res.status(404).json({ error: "Consulta não encontrada" });
     }
 
     if (appointment.patientId !== userId && appointment.doctorId !== userId) {
@@ -180,5 +154,31 @@ exports.cancelAppointment = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Erro ao cancelar consulta" });
+  }
+};
+
+/**
+ * Histórico de consultas passadas
+ */
+exports.getPastAppointments = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const pastAppointments = await prisma.appointment.findMany({
+      where: {
+        OR: [{ patientId: userId }, { doctorId: userId }],
+        endDate: { lt: new Date() },
+      },
+      include: {
+        doctor: { select: { id: true, name: true, email: true } },
+        patient: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { endDate: "desc" },
+    });
+    return res.status(200).json(pastAppointments);
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ error: "Erro ao buscar histórico de consultas" });
   }
 };
