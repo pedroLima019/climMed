@@ -53,6 +53,25 @@ exports.deleteAvailability = async (req, res) => {
         .json({ error: "Apenas médicos podem excluir disponibilidade" });
     }
 
+    const availability = await prisma.doctorAvailability.findUnique({
+      where: { id: Number(availabilityId) },
+    });
+
+    if (!availability) {
+      return res.status(404).json({ error: "Disponibilidade não encontrada" });
+    }
+
+    const now = new Date();
+    const eventDate = new Date(availability.startTime);
+    const diff = eventDate - now;
+    const limitCancel = 24 * 60 * 60 * 1000;
+
+    if (diff < limitCancel) {
+      return res.status(400).json({
+        error: "Cancelamento permitido somente com 24 horas de antecedência",
+      });
+    }
+
     await prisma.doctorAvailability.delete({
       where: { id: Number(availabilityId) },
     });
