@@ -1,6 +1,7 @@
 const prisma = require("../lib/prisma");
 
-exports.createAppointment = async (req, res) => {
+// Criar consulta
+exports.createAppointment = async (req, res, next) => {
   try {
     const { doctorId, date, notes } = req.body;
     const patientId = req.user.userId;
@@ -17,9 +18,10 @@ exports.createAppointment = async (req, res) => {
     });
 
     if (!doctor || doctor.role !== "DOCTOR") {
-      return res
-        .status(404)
-        .json({ success: false, message: "Médico não encontrado" });
+      return res.status(404).json({
+        success: false,
+        message: "Médico não encontrado",
+      });
     }
 
     const appointmentStart = new Date(date);
@@ -28,6 +30,7 @@ exports.createAppointment = async (req, res) => {
       appointmentStart.getTime() + consultationDuration * 60000
     );
 
+    // Verifica disponibilidade
     const weekday = appointmentStart.getDay();
     const availability = await prisma.doctorAvailability.findFirst({
       where: { doctorId: doctor.id, weekday },
@@ -40,6 +43,7 @@ exports.createAppointment = async (req, res) => {
       });
     }
 
+    // Verifica se está dentro do horário disponível
     const startMinutes =
       appointmentStart.getHours() * 60 + appointmentStart.getMinutes();
     const endMinutes =
@@ -62,6 +66,7 @@ exports.createAppointment = async (req, res) => {
       });
     }
 
+    // Verifica conflitos
     const conflict = await prisma.appointment.findFirst({
       where: {
         doctorId: Number(doctorId),
@@ -97,16 +102,15 @@ exports.createAppointment = async (req, res) => {
       data: appointment,
     });
   } catch (error) {
-    console.error(error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Erro ao criar agendamento" });
+    next(error);
   }
 };
 
-exports.getAppointments = async (req, res) => {
+// Buscar consultas futuras
+exports.getAppointments = async (req, res, next) => {
   try {
     const userId = req.user.userId;
+
     const appointments = await prisma.appointment.findMany({
       where: {
         OR: [{ patientId: userId }, { doctorId: userId }],
@@ -123,14 +127,12 @@ exports.getAppointments = async (req, res) => {
       data: appointments,
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao buscar agendamentos",
-    });
+    next(error);
   }
 };
 
-exports.cancelAppointment = async (req, res) => {
+// Cancelar consulta
+exports.cancelAppointment = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
@@ -141,9 +143,10 @@ exports.cancelAppointment = async (req, res) => {
     });
 
     if (!appointment) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Consulta não encontrada" });
+      return res.status(404).json({
+        success: false,
+        message: "Consulta não encontrada",
+      });
     }
 
     if (appointment.patientId !== userId && appointment.doctorId !== userId) {
@@ -174,16 +177,15 @@ exports.cancelAppointment = async (req, res) => {
       data: updated,
     });
   } catch (error) {
-    console.error(error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Erro ao cancelar consulta" });
+    next(error);
   }
 };
 
-exports.getPastAppointments = async (req, res) => {
+// Histórico de consultas
+exports.getPastAppointments = async (req, res, next) => {
   try {
     const userId = req.user.userId;
+
     const pastAppointments = await prisma.appointment.findMany({
       where: {
         OR: [{ patientId: userId }, { doctorId: userId }],
@@ -202,10 +204,6 @@ exports.getPastAppointments = async (req, res) => {
       data: pastAppointments,
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao buscar histórico de consultas",
-    });
+    next(error);
   }
 };
