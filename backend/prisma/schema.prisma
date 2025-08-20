@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  password   String
+  role       Role
+  consultationDuration Int?
+  resetToken String?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  appointmentsAsPatient Appointment[]        @relation("PatientAppointments")
+  appointmentsAsDoctor  Appointment[]        @relation("DoctorAppointments")
+  availabilities        DoctorAvailability[]
+  specialties           Specialty[]          @relation("DoctorSpecialties")
+
+  @@map("users")
+}
+
+model Specialty {
+  id      Int    @id @default(autoincrement())
+  name    String @unique
+  doctors User[] @relation("DoctorSpecialties")
+}
+
+model DoctorAvailability {
+  id        Int    @id @default(autoincrement())
+  doctor    User   @relation(fields: [doctorId], references: [id])
+  doctorId  Int
+  weekday   Int // 0 = Domingo, 6 = Sábado
+  startTime String // formato "09:00"
+  endTime   String // formato "17:00"
+
+  @@map("doctor_availability")
+}
+
+model Appointment {
+  id        Int               @id @default(autoincrement())
+  startDate DateTime          // início da consulta
+  endDate   DateTime          // fim da consulta
+  status    AppointmentStatus @default(SCHEDULED)
+  notes     String?
+
+  // Relations
+  patient   User @relation("PatientAppointments", fields: [patientId], references: [id])
+  patientId Int
+  doctor    User @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  doctorId  Int
+
+  createdAt DateTime @default(now())
+
+  @@map("appointments")
+}
+
+
+enum Role {
+  PATIENT
+  DOCTOR
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELED
+}
