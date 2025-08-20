@@ -2,15 +2,47 @@ const prisma = require("../lib/prisma");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-// ===================== REGISTER =====================
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, specialtyIds } = req.body;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    let specialtiesData = undefined;
+    if (role === "DOCTOR") {
+      if (
+        !specialtyIds ||
+        Array.isArray(specialtyIds) ||
+        specialtyIds.length === 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Médico deve ter ao menos uma especialidade",
+        });
+      }
+
+      const validSpecialties = await prisma.specialty.findMany({
+        where: { id: { in: specialtyIds } },
+      });
+
+      if (validSpecialties.length !== specialtyIds.length) {
+        return res.status(400).json({
+          success: false,
+          message: "Uma ou mais especialidades são inválidas",
+        });
+      }
+      specialtiesDate = { connect: specialtyIds.map((id) => ({ id })) };
+    }
+
     const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword, role },
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        specialties: specialtiesData,
+      },
+      include: { specialties: true },
     });
 
     res.status(201).json({
@@ -23,7 +55,6 @@ exports.register = async (req, res, next) => {
   }
 };
 
-// ===================== LOGIN =====================
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -60,7 +91,6 @@ exports.login = async (req, res, next) => {
   }
 };
 
-// ===================== FORGOT PASSWORD =====================
 exports.forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -90,7 +120,6 @@ exports.forgotPassword = async (req, res, next) => {
   }
 };
 
-// ===================== RESET PASSWORD =====================
 exports.resetPassword = async (req, res, next) => {
   try {
     const { token, newPassword } = req.body;
@@ -122,7 +151,6 @@ exports.resetPassword = async (req, res, next) => {
   }
 };
 
-// ===================== DELETE ACCOUNT =====================
 exports.deleteAccount = async (req, res, next) => {
   try {
     const userId = req.user.userId;
@@ -138,7 +166,6 @@ exports.deleteAccount = async (req, res, next) => {
   }
 };
 
-// ===================== UPDATE CONSULTATION DURATION =====================
 exports.updateConsultationDuration = async (req, res, next) => {
   try {
     const userId = req.user.userId;
@@ -179,7 +206,6 @@ exports.updateConsultationDuration = async (req, res, next) => {
   }
 };
 
-// ===================== UPDATE PROFILE =====================
 exports.updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.userId;
@@ -214,10 +240,43 @@ exports.updateProfile = async (req, res, next) => {
       },
     });
 
+    if (specialtyIds) {
+      const doctor = await prisma.user.findUnique({ where: { id: userId } });
+
+      if (!doctor || doctor.role !== "DOCTOR") {
+        return res.status(403).json({
+          success: false,
+          message: "Apenas médicos podem atualizar espcialidades",
+        });
+      }
+
+      const validSpecialties = await prisma.specialty.findMany({
+        where: {
+          id: {
+            in: specialtyIds,
+          },
+        },
+      });
+
+      if (validSpecialties.length !== specialtyIds.length) {
+        return res.status(400).json({
+          success: false,
+          message: " Uma ou mais especialidades são inválidas",
+        });
+      }
+
+      updateData.specialties = { set: specialtyIds.map((id) => ({ id })) };
+    }
+
+    const updateUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      include: { specialties: true },
+    });
     res.status(200).json({
       success: true,
       message: "Perfil atualizado com sucesso",
-      data: updatedUser,
+      data: updateUser,
     });
   } catch (error) {
     next(error);

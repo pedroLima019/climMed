@@ -1,20 +1,20 @@
 const prisma = require("../lib/prisma");
 
-// Criar consulta
 exports.createAppointment = async (req, res, next) => {
   try {
-    const { doctorId, date, notes } = req.body;
+    const { doctorId, date, notes, specialtyId } = req.body;
     const patientId = req.user.userId;
 
-    if (!doctorId || !date) {
+    if (!doctorId || !date || !specialtyId) {
       return res.status(400).json({
         success: false,
-        message: "doctorId e date são obrigatórios!",
+        message: "doctorId , date , specialtyId são obrigatórios!",
       });
     }
 
     const doctor = await prisma.user.findUnique({
       where: { id: Number(doctorId) },
+      include: { specialties: true },
     });
 
     if (!doctor || doctor.role !== "DOCTOR") {
@@ -24,13 +24,23 @@ exports.createAppointment = async (req, res, next) => {
       });
     }
 
+    const hasSpecialty = doctor.specialties.some(
+      (s) => s.id === Number(specialtyId)
+    );
+
+    if (!hasSpecialty) {
+      return res.status(400).json({
+        success: false,
+        message: "O médico não possui a especialidade selecionada",
+      });
+    }
+
     const appointmentStart = new Date(date);
     const consultationDuration = doctor.consultationDuration || 30;
     const appointmentEnd = new Date(
       appointmentStart.getTime() + consultationDuration * 60000
     );
 
-    // Verifica disponibilidade
     const weekday = appointmentStart.getDay();
     const availability = await prisma.doctorAvailability.findFirst({
       where: { doctorId: doctor.id, weekday },
@@ -43,7 +53,6 @@ exports.createAppointment = async (req, res, next) => {
       });
     }
 
-    // Verifica se está dentro do horário disponível
     const startMinutes =
       appointmentStart.getHours() * 60 + appointmentStart.getMinutes();
     const endMinutes =
@@ -66,7 +75,6 @@ exports.createAppointment = async (req, res, next) => {
       });
     }
 
-    // Verifica conflitos
     const conflict = await prisma.appointment.findFirst({
       where: {
         doctorId: Number(doctorId),
@@ -93,6 +101,7 @@ exports.createAppointment = async (req, res, next) => {
         patientId,
         doctorId: Number(doctorId),
         status: "SCHEDULED",
+        specialtyId: Number(specialtyId),
       },
     });
 
