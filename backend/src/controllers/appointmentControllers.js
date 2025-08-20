@@ -6,9 +6,10 @@ exports.createAppointment = async (req, res) => {
     const patientId = req.user.userId;
 
     if (!doctorId || !date) {
-      return res
-        .status(400)
-        .json({ error: "doctorId e date são obrigatórios!" });
+      return res.status(400).json({
+        success: false,
+        message: "doctorId e date são obrigatórios!",
+      });
     }
 
     const doctor = await prisma.user.findUnique({
@@ -16,7 +17,9 @@ exports.createAppointment = async (req, res) => {
     });
 
     if (!doctor || doctor.role !== "DOCTOR") {
-      return res.status(404).json({ error: "Médico não encontrado" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Médico não encontrado" });
     }
 
     const appointmentStart = new Date(date);
@@ -31,9 +34,10 @@ exports.createAppointment = async (req, res) => {
     });
 
     if (!availability) {
-      return res
-        .status(400)
-        .json({ error: "Médico não possui disponibilidade neste dia" });
+      return res.status(400).json({
+        success: false,
+        message: "Médico não possui disponibilidade neste dia",
+      });
     }
 
     const startMinutes =
@@ -53,7 +57,8 @@ exports.createAppointment = async (req, res) => {
 
     if (startMinutes < availStart || endMinutes > availEnd) {
       return res.status(400).json({
-        error: `Consulta fora da disponibilidade do médico (${availability.startTime} - ${availability.endTime})`,
+        success: false,
+        message: `Consulta fora da disponibilidade do médico (${availability.startTime} - ${availability.endTime})`,
       });
     }
 
@@ -69,9 +74,10 @@ exports.createAppointment = async (req, res) => {
     });
 
     if (conflict) {
-      return res
-        .status(400)
-        .json({ error: "Já existe uma consulta nesse horário" });
+      return res.status(400).json({
+        success: false,
+        message: "Já existe uma consulta nesse horário",
+      });
     }
 
     const appointment = await prisma.appointment.create({
@@ -85,10 +91,16 @@ exports.createAppointment = async (req, res) => {
       },
     });
 
-    return res.status(201).json(appointment);
+    return res.status(201).json({
+      success: true,
+      message: "Consulta criada com sucesso",
+      data: appointment,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: "Erro ao criar agendamento" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Erro ao criar agendamento" });
   }
 };
 
@@ -104,9 +116,17 @@ exports.getAppointments = async (req, res) => {
         patient: { select: { id: true, name: true, email: true } },
       },
     });
-    return res.status(200).json(appointments);
+
+    return res.status(200).json({
+      success: true,
+      message: "Consultas encontradas",
+      data: appointments,
+    });
   } catch (error) {
-    return res.status(500).json({ error: "Erro ao buscar agendamentos" });
+    return res.status(500).json({
+      success: false,
+      message: "Erro ao buscar agendamentos",
+    });
   }
 };
 
@@ -121,13 +141,16 @@ exports.cancelAppointment = async (req, res) => {
     });
 
     if (!appointment) {
-      return res.status(404).json({ error: "Consulta não encontrada" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Consulta não encontrada" });
     }
 
     if (appointment.patientId !== userId && appointment.doctorId !== userId) {
-      return res
-        .status(403)
-        .json({ error: "Você não tem permissão para cancelar a consulta" });
+      return res.status(403).json({
+        success: false,
+        message: "Você não tem permissão para cancelar a consulta",
+      });
     }
 
     const now = new Date();
@@ -135,7 +158,8 @@ exports.cancelAppointment = async (req, res) => {
 
     if (diffHours < 24) {
       return res.status(400).json({
-        error: "Cancelamento permitido apenas até 24 horas antes da consulta",
+        success: false,
+        message: "Cancelamento permitido apenas até 24 horas antes da consulta",
       });
     }
 
@@ -145,12 +169,15 @@ exports.cancelAppointment = async (req, res) => {
     });
 
     return res.json({
+      success: true,
       message: "Consulta cancelada com sucesso",
-      appointment: updated,
+      data: updated,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: "Erro ao cancelar consulta" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Erro ao cancelar consulta" });
   }
 };
 
@@ -168,11 +195,17 @@ exports.getPastAppointments = async (req, res) => {
       },
       orderBy: { endDate: "desc" },
     });
-    return res.status(200).json(pastAppointments);
+
+    return res.status(200).json({
+      success: true,
+      message: "Histórico de consultas encontrado",
+      data: pastAppointments,
+    });
   } catch (error) {
     console.error(error);
-    return res
-      .status(500)
-      .json({ error: "Erro ao buscar histórico de consultas" });
+    return res.status(500).json({
+      success: false,
+      message: "Erro ao buscar histórico de consultas",
+    });
   }
 };

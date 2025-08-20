@@ -5,9 +5,10 @@ exports.createAvailability = async (req, res) => {
     const { weekday, startTime, endTime } = req.body;
 
     if (req.user.role !== "DOCTOR") {
-      return res
-        .status(403)
-        .json({ error: "Apenas médicos podem definir disponibilidade" });
+      return res.status(403).json({
+        success: false,
+        message: "Acesso negado: apenas médicos podem definir disponibilidade.",
+      });
     }
 
     const availability = await prisma.doctorAvailability.create({
@@ -18,28 +19,45 @@ exports.createAvailability = async (req, res) => {
         endTime,
       },
     });
-    return res.status(201).json(availability);
+
+    return res.status(201).json({
+      success: true,
+      message: "Disponibilidade criada com sucesso.",
+      data: availability,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: "Erro ao criar disponibilidade" });
+    return res.status(500).json({
+      success: false,
+      message: "Erro interno: não foi possível criar disponibilidade.",
+    });
   }
 };
 
 exports.getMyAvailability = async (req, res) => {
   try {
     if (req.user.role !== "DOCTOR") {
-      return res
-        .status(403)
-        .json({ error: "Apenas médicos podem vizualizar disponibilidade" });
+      return res.status(403).json({
+        success: false,
+        message:
+          "Acesso negado: apenas médicos podem visualizar disponibilidade.",
+      });
     }
 
     const availability = await prisma.doctorAvailability.findMany({
       where: { doctorId: req.user.userId },
     });
 
-    return res.status(200).json(availability);
+    return res.status(200).json({
+      success: true,
+      message: "Disponibilidades carregadas com sucesso.",
+      data: availability,
+    });
   } catch (error) {
-    return res.status(500).json({ error: "Erro ao buscar disponibilidade" });
+    return res.status(500).json({
+      success: false,
+      message: "Erro interno: não foi possível buscar disponibilidade.",
+    });
   }
 };
 
@@ -48,9 +66,10 @@ exports.deleteAvailability = async (req, res) => {
     const { availabilityId } = req.body;
 
     if (req.user.role !== "DOCTOR") {
-      return res
-        .status(403)
-        .json({ error: "Apenas médicos podem excluir disponibilidade" });
+      return res.status(403).json({
+        success: false,
+        message: "Acesso negado: apenas médicos podem excluir disponibilidade.",
+      });
     }
 
     const availability = await prisma.doctorAvailability.findUnique({
@@ -58,7 +77,10 @@ exports.deleteAvailability = async (req, res) => {
     });
 
     if (!availability) {
-      return res.status(404).json({ error: "Disponibilidade não encontrada" });
+      return res.status(404).json({
+        success: false,
+        message: "Não encontrado: disponibilidade inexistente.",
+      });
     }
 
     const now = new Date();
@@ -68,7 +90,8 @@ exports.deleteAvailability = async (req, res) => {
 
     if (diff < limitCancel) {
       return res.status(400).json({
-        error: "Cancelamento permitido somente com 24 horas de antecedência",
+        success: false,
+        message: "Cancelamento permitido apenas com 24 horas de antecedência.",
       });
     }
 
@@ -76,11 +99,15 @@ exports.deleteAvailability = async (req, res) => {
       where: { id: Number(availabilityId) },
     });
 
-    return res
-      .status(200)
-      .json({ message: "Disponibilidade removida com sucesso " });
+    return res.status(200).json({
+      success: true,
+      message: "Disponibilidade removida com sucesso.",
+    });
   } catch (error) {
-    return res.status(500).json({ error: "Erro ao excluir disponibilidade" });
+    return res.status(500).json({
+      success: false,
+      message: "Erro interno: não foi possível excluir disponibilidade.",
+    });
   }
 };
 
@@ -89,9 +116,10 @@ exports.getAvailableSlots = async (req, res) => {
     const { doctorId, date } = req.body;
 
     if (!doctorId || !date) {
-      return res
-        .status(400)
-        .json({ error: "doctorId e date são obrigatórios" });
+      return res.status(400).json({
+        success: false,
+        message: "Dados inválidos: doctorId e date são obrigatórios.",
+      });
     }
 
     const doctor = await prisma.user.findUnique({
@@ -99,7 +127,10 @@ exports.getAvailableSlots = async (req, res) => {
     });
 
     if (!doctor || doctor.role !== "DOCTOR") {
-      return res.status(404).json({ error: "Médico não encontrado" });
+      return res.status(404).json({
+        success: false,
+        message: "Não encontrado: médico inexistente.",
+      });
     }
 
     const consultationDuration = doctor.consultationDuration || 30;
@@ -111,9 +142,10 @@ exports.getAvailableSlots = async (req, res) => {
     });
 
     if (!availability) {
-      return res
-        .status(400)
-        .json({ error: "Médico não possui disponibilidade neste dia" });
+      return res.status(400).json({
+        success: false,
+        message: "Médico não possui disponibilidade neste dia.",
+      });
     }
 
     const [startHour, startMinute] = availability.startTime
@@ -148,25 +180,28 @@ exports.getAvailableSlots = async (req, res) => {
       select: { startDate: true, endDate: true },
     });
 
-    const freeSlots = slots.filter((slot) => {
-      return !appointments.some(
-        (appt) => slot.start < appt.endDate && slot.end > appt.startDate
-      );
-    });
+    const freeSlots = slots.filter(
+      (slot) =>
+        !appointments.some(
+          (appt) => slot.start < appt.endDate && slot.end > appt.startDate
+        )
+    );
 
-    return res.json({
-      doctorId,
-      date,
-      slots: freeSlots.map((s) => ({
-        start: s.start,
-        end: s.end,
-      })),
+    return res.status(200).json({
+      success: true,
+      message: "Horários disponíveis carregados com sucesso.",
+      data: {
+        doctorId,
+        date,
+        slots: freeSlots,
+      },
     });
   } catch (error) {
     console.error(error);
-    return res
-      .status(500)
-      .json({ error: "Erro ao buscar horários disponíveis" });
+    return res.status(500).json({
+      success: false,
+      message: "Erro interno: não foi possível buscar horários disponíveis.",
+    });
   }
 };
 
@@ -175,9 +210,10 @@ exports.updateAvailability = async (req, res) => {
     const { availabilityId, weekday, startTime, endTime } = req.body;
 
     if (req.user.role !== "DOCTOR") {
-      return res
-        .status(403)
-        .json({ error: "Apenas médicos podem editar disponibilidade" });
+      return res.status(403).json({
+        success: false,
+        message: "Acesso negado: apenas médicos podem editar disponibilidade.",
+      });
     }
 
     const availability = await prisma.doctorAvailability.findUnique({
@@ -185,16 +221,22 @@ exports.updateAvailability = async (req, res) => {
     });
 
     if (!availability) {
-      return res.status(404).json({ error: "Disponibilidade não encontrada" });
+      return res.status(404).json({
+        success: false,
+        message: "Não encontrado: disponibilidade inexistente.",
+      });
     }
+
     const day = new Date();
-    day.setDate(day.getDate() + ((weekday - day.getDay() + 7) % 7)); // próximo dia da semana
+    day.setDate(day.getDate() + ((weekday - day.getDay() + 7) % 7));
+
     const [startHour, startMinute] = (startTime ?? availability.startTime)
       .split(":")
       .map(Number);
     const [endHour, endMinute] = (endTime ?? availability.endTime)
       .split(":")
       .map(Number);
+
     const startOfDay = new Date(day);
     startOfDay.setHours(startHour, startMinute, 0, 0);
 
@@ -212,8 +254,9 @@ exports.updateAvailability = async (req, res) => {
 
     if (conflictingAppointments.length > 0) {
       return res.status(400).json({
-        error:
-          "Não é possível alterar a disponibilidade porque existem consultas agendadas nesse horário.",
+        success: false,
+        message:
+          "Não é possível alterar disponibilidade com consultas já agendadas.",
       });
     }
 
@@ -226,9 +269,16 @@ exports.updateAvailability = async (req, res) => {
       },
     });
 
-    return res.status(200).json(updatedAvailability);
+    return res.status(200).json({
+      success: true,
+      message: "Disponibilidade atualizada com sucesso.",
+      data: updatedAvailability,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: "Erro ao atualizar disponibilidade" });
+    return res.status(500).json({
+      success: false,
+      message: "Erro interno: não foi possível atualizar disponibilidade.",
+    });
   }
 };
