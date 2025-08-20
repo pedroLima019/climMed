@@ -11,5 +11,10 @@ router.get(
   authMiddleware,
   availabilityController.getAvailableSlots
 );
+router.put(
+  "/availability",
+  authMiddleware,
+  availabilityController.updateAvailability
+);
 
 module.exports = router;

@@ -88,11 +88,13 @@ exports.getAvailableSlots = async (req, res) => {
   try {
     const { doctorId, date } = req.body;
 
-    if (!doctorId || date) {
-      return res.status(400).json({ error: "doctorId e são obrigatórios" });
+    if (!doctorId || !date) {
+      return res
+        .status(400)
+        .json({ error: "doctorId e date são obrigatórios" });
     }
 
-    const doctor = prisma.user.findUnique({
+    const doctor = await prisma.user.findUnique({
       where: { id: Number(doctorId) },
     });
 
@@ -109,7 +111,9 @@ exports.getAvailableSlots = async (req, res) => {
     });
 
     if (!availability) {
-      return res.status(400).json([]);
+      return res
+        .status(400)
+        .json({ error: "Médico não possui disponibilidade neste dia" });
     }
 
     const [startHour, startMinute] = availability.startTime
@@ -124,8 +128,11 @@ exports.getAvailableSlots = async (req, res) => {
     const end = new Date(day);
     end.setHours(endHour, endMinute, 0, 0);
 
-    while (current < end) {
-      slots.push(new Date(current));
+    while (current.getTime() + consultationDuration * 60000 <= end.getTime()) {
+      slots.push({
+        start: new Date(current),
+        end: new Date(current.getTime() + consultationDuration * 60000),
+      });
       current = new Date(current.getTime() + consultationDuration * 60000);
     }
 
@@ -133,37 +140,95 @@ exports.getAvailableSlots = async (req, res) => {
       where: {
         doctorId: doctor.id,
         status: "SCHEDULED",
-        date: {
+        startDate: {
           gte: new Date(day.setHours(0, 0, 0, 0)),
-        },
-        endDate: {
-          lte: new Date(targetDate.setHours(23, 59, 59, 999)),
+          lt: new Date(day.setHours(23, 59, 59, 999)),
         },
       },
+      select: { startDate: true, endDate: true },
     });
 
-    const freeSlots = slots.filter((slots) => {
-      return !appointments.some((appt) => {
-        const slotEnd = new Date(
-          slots.getTime() + consultationDuration * 60000
-        );
-        return appt.startDate < slotEnd && appt.endDate > slots;
-      });
+    const freeSlots = slots.filter((slot) => {
+      return !appointments.some(
+        (appt) => slot.start < appt.endDate && slot.end > appt.startDate
+      );
     });
 
-    const formattedSlots = freeSlots.map((s) => {
-      const day = String(s.getDay()).padStart(2, "0");
-      const month = String(s.getMonth() + 1).padStart(2, "0");
-      const fullYear = s.getFullYear();
-      const hours = String(s.getHours()).padStart(2, "0");
-      const minutes = String(s.getMinutes()).padStart(2, "0");
-      return `${day}, ${month}, ${fullYear} ${hours}:${minutes}`;
+    return res.json({
+      doctorId,
+      date,
+      slots: freeSlots.map((s) => ({
+        start: s.start,
+        end: s.end,
+      })),
     });
-    return res.json({ doctorId, date, availableSlots: formattedSlots });
   } catch (error) {
     console.error(error);
     return res
       .status(500)
       .json({ error: "Erro ao buscar horários disponíveis" });
+  }
+};
+
+exports.updateAvailability = async (req, res) => {
+  try {
+    const { availabilityId, weekday, startTime, endTime } = req.body;
+
+    if (req.user.role !== "DOCTOR") {
+      return res
+        .status(403)
+        .json({ error: "Apenas médicos podem editar disponibilidade" });
+    }
+
+    const availability = await prisma.doctorAvailability.findUnique({
+      where: { id: Number(availabilityId) },
+    });
+
+    if (!availability) {
+      return res.status(404).json({ error: "Disponibilidade não encontrada" });
+    }
+    const day = new Date();
+    day.setDate(day.getDate() + ((weekday - day.getDay() + 7) % 7)); // próximo dia da semana
+    const [startHour, startMinute] = (startTime ?? availability.startTime)
+      .split(":")
+      .map(Number);
+    const [endHour, endMinute] = (endTime ?? availability.endTime)
+      .split(":")
+      .map(Number);
+    const startOfDay = new Date(day);
+    startOfDay.setHours(startHour, startMinute, 0, 0);
+
+    const endOfDay = new Date(day);
+    endOfDay.setHours(endHour, endMinute, 0, 0);
+
+    const conflictingAppointments = await prisma.appointment.findMany({
+      where: {
+        doctorId: availability.doctorId,
+        status: "SCHEDULED",
+        startDate: { lt: endOfDay },
+        endDate: { gt: startOfDay },
+      },
+    });
+
+    if (conflictingAppointments.length > 0) {
+      return res.status(400).json({
+        error:
+          "Não é possível alterar a disponibilidade porque existem consultas agendadas nesse horário.",
+      });
+    }
+
+    const updatedAvailability = await prisma.doctorAvailability.update({
+      where: { id: Number(availabilityId) },
+      data: {
+        weekday: weekday ?? availability.weekday,
+        startTime: startTime ?? availability.startTime,
+        endTime: endTime ?? availability.endTime,
+      },
+    });
+
+    return res.status(200).json(updatedAvailability);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Erro ao atualizar disponibilidade" });
   }
 };

@@ -110,9 +110,6 @@ exports.getAppointments = async (req, res) => {
   }
 };
 
-/**
- * Cancelamento respeitando 24h antes
- */
 exports.cancelAppointment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -157,9 +154,6 @@ exports.cancelAppointment = async (req, res) => {
   }
 };
 
-/**
- * Histórico de consultas passadas
- */
 exports.getPastAppointments = async (req, res) => {
   try {
     const userId = req.user.userId;
