@@ -1,0 +1,89 @@
+@media (min-width: 320px) {
+  .login-container {
+    width: 100%;
+    height: 80vh;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .title-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .title-container img {
+    width: 70px;
+  }
+
+  .title-container h2 {
+    font-weight: 500;
+  }
+
+  .login-form {
+    width: 100%;
+    height: 450px;
+    margin: 1rem 0;
+    box-shadow: 10px 10px 30px 1px #00000034;
+    border-radius: 10px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .login-form label {
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .login-form input {
+    outline: 0;
+    border: none;
+    border-bottom: 1px solid #000;
+    margin: 0.8rem 0;
+  }
+
+  .login-form input::placeholder {
+    font-size: 12px;
+  }
+
+  .login-form a {
+    font-size: 12px;
+    margin: 1rem 0;
+  }
+
+  .login-form button {
+    border: none;
+    padding: 0.5rem;
+    background: #000;
+    color: #fff;
+    font-weight: 500;
+    border-radius: 5px;
+    margin: 1rem 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .title-container {
+    font-size: 25px;
+  }
+  .login-form {
+    width: 50%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .title-container {
+    font-size: 30px;
+  }
+  .login-form {
+    width: 400px;
+  }
+}
