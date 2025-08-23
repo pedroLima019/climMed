@@ -5,13 +5,14 @@ import { useNavigate } from "react-router-dom";
 export function Welcome() {
   const navigation = useNavigate();
 
-  const handleSelectRole = (role: "MEDICO" | "PACIENT") => {
+  const handleSelectRole = (role: "MEDICO" | "PACIENTE") => {
     if (role === "MEDICO") {
-      navigation("/login/medico");
+      navigation("/register/medico");
     } else {
-      navigation("/login/paciente");
+      navigation("/register/paciente");
     }
   };
+
   return (
     <main>
       <div className="welcome-container">
@@ -21,13 +22,13 @@ export function Welcome() {
         </div>
         <div className="typeUser_container">
           <p>Você se indentifica como ?</p>
-          <form className="form-container">
+          <div className="form-container">
             <div className="user">
               <input
                 type="radio"
                 id="medico"
                 name="tipoUsuario"
-                onClick={() => handleSelectRole("MEDICO")}
+                onChange={() => handleSelectRole("MEDICO")}
               />
               <label htmlFor="medico">Médico</label>
             </div>
@@ -36,11 +37,11 @@ export function Welcome() {
                 type="radio"
                 id="paciente"
                 name="tipoUsuario"
-                onClick={() => handleSelectRole("PACIENT")}
+                onChange={() => handleSelectRole("PACIENTE")}
               />
               <label htmlFor="paciente">Paciente</label>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </main>
