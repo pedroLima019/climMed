@@ -1,0 +1,9 @@
+@media (min-width: 320px) {
+  .form-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.5rem;
+  }
+}

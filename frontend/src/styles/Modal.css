@@ -1,50 +1,52 @@
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
+@media (min-width: 320px) {
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: flex-start;
+    z-index: 1000;
+  }
 
-.modal {
-  background: white;
-  padding: 1rem;
-  border-radius: 10px;
-  min-width: 300px;
-  text-align: center;
-  box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.2);
-}
+  .modal {
+    background: white;
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 1rem auto;
+    min-width: 300px;
+    text-align: center;
+    box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.2);
+  }
 
-.modal-overlay p {
-  font-size: 12px;
-}
+  .modal-overlay p {
+    font-size: 12px;
+  }
 
-.modal.success {
-  background: #28a745;
-  color: #fff;
-}
+  .modal.success {
+    background: #28a745;
+    color: #fff;
+  }
 
-.modal.error {
-  background: #f10f07;
-  color: #ffffff;
-}
+  .modal.error {
+    background: #f10f07;
+    color: #ffffff;
+  }
 
-.modal button {
-  margin-top: 10px;
-  padding: 0.2rem;
-  width: 200px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  background: #ffffff;
-  font-weight: 500;
-  font-size: 12px;
-  transition: all 0.3s ease-in-out;
-}
+  .modal button {
+    margin-top: 10px;
+    padding: 0.2rem;
+    width: 200px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background: #ffffff;
+    font-weight: 500;
+    font-size: 12px;
+    transition: all 0.3s ease-in-out;
+  }
 
-.modal button:hover {
-  background: rgb(20, 20, 20);
-  color: #ffffff;
+  .modal button:hover {
+    background: rgb(20, 20, 20);
+    color: #ffffff;
+  }
 }

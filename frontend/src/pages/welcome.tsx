@@ -2,7 +2,7 @@ import "../styles/global.css";
 import "../styles/welcome.css";
 import { useNavigate } from "react-router-dom";
 
-export function Welcome() {
+const Welcome = () => {
   const navigation = useNavigate();
 
   const handleSelectRole = (role: "MEDICO" | "PACIENTE") => {
@@ -22,7 +22,7 @@ export function Welcome() {
         </div>
         <div className="typeUser_container">
           <p>Você se indentifica como ?</p>
-          <div className="form-container">
+          <div className="input-container">
             <div className="user">
               <input
                 type="radio"
@@ -46,6 +46,6 @@ export function Welcome() {
       </div>
     </main>
   );
-}
+};
 
 export default Welcome;

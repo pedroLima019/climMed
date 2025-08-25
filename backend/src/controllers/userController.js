@@ -4,44 +4,48 @@ const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role, specialtyIds } = req.body;
+    const { name, email, password, role, specialties } = req.body;
+
+    const prismaRole = role === "MEDICO" ? "DOCTOR" : "PATIENT";
+
+    if (
+      prismaRole === "DOCTOR" &&
+      (!specialties ||
+        typeof specialties !== "string" ||
+        specialties.trim() === "")
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "O campo de especialidade é obrigatório para médicos.",
+      });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    let specialtiesData = undefined;
-    if (role === "DOCTOR") {
-      if (
-        !specialtyIds ||
-        Array.isArray(specialtyIds) ||
-        specialtyIds.length === 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "Médico deve ter ao menos uma especialidade",
-        });
-      }
+    const userData = {
+      name,
+      email,
+      password: hashedPassword,
+      role: prismaRole,
+    };
 
-      const validSpecialties = await prisma.specialty.findMany({
-        where: { id: { in: specialtyIds } },
-      });
-
-      if (validSpecialties.length !== specialtyIds.length) {
-        return res.status(400).json({
-          success: false,
-          message: "Uma ou mais especialidades são inválidas",
-        });
-      }
-      specialtiesDate = { connect: specialtyIds.map((id) => ({ id })) };
+    if (
+      prismaRole === "DOCTOR" &&
+      typeof specialties === "string" &&
+      specialties.trim() !== ""
+    ) {
+      userData.specialties = {
+        connectOrCreate: [
+          {
+            where: { name: specialties },
+            create: { name: specialties },
+          },
+        ],
+      };
     }
 
     const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role,
-        specialties: specialtiesData,
-      },
+      data: userData,
       include: { specialties: true },
     });
 
@@ -51,6 +55,13 @@ exports.register = async (req, res, next) => {
       data: user,
     });
   } catch (error) {
+    if (error.code === "P2002" && error.meta?.target.includes("email")) {
+      return res.status(409).json({
+        success: false,
+        message: "Este e-mail já está em uso.",
+      });
+    }
+    console.error("Erro no registro:", error);
     next(error);
   }
 };
@@ -74,7 +85,6 @@ exports.login = async (req, res, next) => {
         message: "Senha incorreta",
       });
     }
-
     const token = jwt.sign(
       { userId: user.id, role: user.role },
       process.env.JWT_SECRET,

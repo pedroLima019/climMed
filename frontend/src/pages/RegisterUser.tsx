@@ -1,22 +1,37 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Modal from "../components/Modal";
+import Form from "../components/Form";
 import "../styles/Register.css";
 import "../styles/global.css";
-import Modal from "../components/Modal";
 
 interface RegisterProps {
   role: "MEDICO" | "PACIENTE";
 }
 
-export function RegisterUser({ role }: RegisterProps) {
+const RegisterUser = ({ role }: RegisterProps) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [specialties, setSpecialties] = useState("");
 
-  // controle do modal
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"success" | "error">("success");
   const [modalMessage, setModalMessage] = useState("");
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let timer: number;
+
+    if (modalOpen) {
+      timer = setTimeout(() => {
+        setModalOpen(false);
+      }, 3000);
+    }
+
+    return () => clearTimeout(timer);
+  }, [modalOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +55,11 @@ export function RegisterUser({ role }: RegisterProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Erro ao registrar usuário.");
+        const errorMessage = errorData.message || "Erro ao registrar usuário";
+        setModalType("error");
+        setModalMessage(errorMessage);
+        setModalOpen(true);
+        return;
       }
 
       const data = await response.json();
@@ -49,6 +68,13 @@ export function RegisterUser({ role }: RegisterProps) {
       setModalType("success");
       setModalMessage("Registro realizado com sucesso!");
       setModalOpen(true);
+
+      setName("");
+      setEmail("");
+      setPassword("");
+      setSpecialties("");
+
+      setTimeout(() => navigate("/login"), 2000);
     } catch (error) {
       console.error("Erro ao registrar:", error);
 
@@ -59,63 +85,49 @@ export function RegisterUser({ role }: RegisterProps) {
   };
 
   return (
-    <main className="login-container">
+    <main className="Register-container">
       <div className="title-container">
         <img src="/logo.png" alt="logo climmed" />
         <h2>Cadastro {role === "MEDICO" ? "Médico" : "Paciente"}</h2>
       </div>
-      <form className="login-form" onSubmit={handleSubmit}>
-        <label>Nome</label>
-        <input
+
+      <form className="Register-form" onSubmit={handleSubmit}>
+        <Form
+          label="Nome"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Digite seu nome"
-          required
         />
 
-        <label>Email</label>
-        <input
+        <Form
+          label="Email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Digite seu e-mail"
-          required
         />
 
-        <label>Senha</label>
-        <input
+        <Form
+          label="Senha"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Digite sua senha"
-          required
         />
 
         {role === "MEDICO" && (
-          <>
-            <label>Especialidade</label>
-            <input
-              type="text"
-              value={specialties}
-              onChange={(e) => setSpecialties(e.target.value)}
-              placeholder="Ex: Cardiologia, Dermatologia"
-            />
-          </>
+          <Form
+            label="Especialidade"
+            type="text"
+            value={specialties}
+            onChange={(e) => setSpecialties(e.target.value)}
+          />
         )}
 
         <button type="submit">Cadastrar</button>
       </form>
 
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={modalType === "success" ? "Sucesso" : "Erro"}
-        type={modalType}
-        message={modalMessage}
-      />
+      <Modal isOpen={modalOpen} type={modalType} message={modalMessage} />
     </main>
   );
-}
+};
 
 export default RegisterUser;
