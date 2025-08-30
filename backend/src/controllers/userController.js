@@ -94,7 +94,8 @@ exports.login = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Login bem-sucedido",
-      data: { token },
+      token,
+      role: user.role,
     });
   } catch (error) {
     next(error);
@@ -241,14 +242,14 @@ exports.updateProfile = async (req, res, next) => {
       }
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        name: name ?? undefined,
-        email: email ?? undefined,
-        phone: phone ?? undefined,
-      },
-    });
+    // const updatedUser = await prisma.user.update({
+    //   where: { id: userId },
+    //   data: {
+    //     name: name ?? undefined,
+    //     email: email ?? undefined,
+    //     phone: phone ?? undefined,
+    //   },
+    // });
 
     if (specialtyIds) {
       const doctor = await prisma.user.findUnique({ where: { id: userId } });

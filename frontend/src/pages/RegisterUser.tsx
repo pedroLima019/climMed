@@ -1,15 +1,14 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import Modal from "../components/Modal";
 import Form from "../components/Form";
 import "../styles/Register.css";
 import "../styles/global.css";
 
-interface RegisterProps {
-  role: "MEDICO" | "PACIENTE";
-}
+const RegisterUser = () => {
+  const { role } = useParams<{ role: string }>();
+  const navigate = useNavigate();
 
-const RegisterUser = ({ role }: RegisterProps) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,20 +18,6 @@ const RegisterUser = ({ role }: RegisterProps) => {
   const [modalType, setModalType] = useState<"success" | "error">("success");
   const [modalMessage, setModalMessage] = useState("");
 
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    let timer: number;
-
-    if (modalOpen) {
-      timer = setTimeout(() => {
-        setModalOpen(false);
-      }, 3000);
-    }
-
-    return () => clearTimeout(timer);
-  }, [modalOpen]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -40,14 +25,12 @@ const RegisterUser = ({ role }: RegisterProps) => {
       name,
       email,
       password,
-      role,
-      specialties: role === "MEDICO" ? specialties : undefined,
+      role: role,
+      specialties: role === "medico" ? specialties : undefined,
     };
 
-    const API_URL = "http://localhost:3000/users/register";
-
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch("http://localhost:3000/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newUser),
@@ -55,31 +38,30 @@ const RegisterUser = ({ role }: RegisterProps) => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const errorMessage = errorData.message || "Erro ao registrar usuário";
         setModalType("error");
-        setModalMessage(errorMessage);
+        setModalMessage(errorData.message || "Erro ao cadastrar");
         setModalOpen(true);
         return;
       }
 
-      const data = await response.json();
-      console.log("Usuário registrado com sucesso:", data);
-
       setModalType("success");
-      setModalMessage("Registro realizado com sucesso!");
+      setModalMessage("Cadastro realizado com sucesso!");
       setModalOpen(true);
 
+      // limpar formulário
       setName("");
       setEmail("");
       setPassword("");
       setSpecialties("");
 
-      setTimeout(() => navigate("/login"), 2000);
-    } catch (error) {
-      console.error("Erro ao registrar:", error);
-
+      // redireciona para login depois de 2 segundos
+      setTimeout(() => {
+        navigate("/login");
+      }, 3000);
+    } catch (err) {
+      console.error("Erro ao cadastrar:", err);
       setModalType("error");
-      setModalMessage("Erro ao registrar usuário.");
+      setModalMessage("Erro no servidor, tente novamente.");
       setModalOpen(true);
     }
   };
@@ -88,7 +70,7 @@ const RegisterUser = ({ role }: RegisterProps) => {
     <main className="Register-container">
       <div className="title-container">
         <img src="/logo.png" alt="logo climmed" />
-        <h2>Cadastro {role === "MEDICO" ? "Médico" : "Paciente"}</h2>
+        <h2>Cadastro {role === "medico" ? "Médico" : "Paciente"}</h2>
       </div>
 
       <form className="Register-form" onSubmit={handleSubmit}>
@@ -113,7 +95,7 @@ const RegisterUser = ({ role }: RegisterProps) => {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        {role === "MEDICO" && (
+        {role === "medico" && (
           <Form
             label="Especialidade"
             type="text"

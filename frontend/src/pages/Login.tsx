@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
 import Form from "../components/Form";
 import "../styles/Login.css";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const Login = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -12,58 +13,49 @@ const Login = () => {
   const [modalType, setModalType] = useState<"success" | "error">("success");
   const [modalMessage, setModalMessage] = useState("");
 
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const loginUser = { email, password };
-    const API_URL = "http://localhost:3000/users/login";
-
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch("http://localhost:3000/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loginUser),
+        body: JSON.stringify({ email, password }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData.message || "Erro ao fazer login";
         setModalType("error");
-        setModalMessage(errorMessage);
+        setModalMessage(data.message || "Credenciais inválidas.");
         setModalOpen(true);
         return;
       }
 
-      const data = await response.json();
-      console.log("Login realizado com sucesso:", data);
-
-      localStorage.setItem("authtoken", data.token);
-      localStorage.setItem("role", data.role);
-
+      // login bem sucedido
       setModalType("success");
       setModalMessage("Login realizado com sucesso!");
       setModalOpen(true);
 
-      setEmail("");
-      setPassword("");
+      const token = data.token;
+      const role = data.role;
 
+      // salvar token/role no localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("role", role);
+
+      // direcionar para dashboard após 1,5s
       setTimeout(() => {
-        if (data.role === "MEDICO") {
-          navigate("/dashboard/medico");
-        } else {
-          navigate("/dashboard/paciente");
-        }
-      }, 1000);
-    } catch (error) {
-      console.error("Erro ao logar:", error);
+        setModalOpen(false);
+        navigate(`/dashboard/${data.role.toLowerCase()}`);
+      }, 1500);
+    } catch (err) {
+      console.error("Erro ao logar:", err);
       setModalType("error");
-      setModalMessage("Erro ao fazer login.");
+      setModalMessage("Erro no servidor, tente novamente.");
       setModalOpen(true);
     }
   };
-
   return (
     <main className="login-container">
       <div className="login-header">
