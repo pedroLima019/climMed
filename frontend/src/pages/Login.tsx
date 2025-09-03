@@ -2,16 +2,25 @@ import Modal from "../components/Modal";
 import Form from "../components/Form";
 import "../styles/Login.css";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useUser } from "../contexts/UserContext";
+import { useState, useEffect } from "react";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const { user, setUser } = useUser();
+
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"success" | "error">("success");
   const [modalMessage, setModalMessage] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      navigate(`/dashboard/${user.role.toLowerCase()}`);
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,22 +41,20 @@ const Login = () => {
         return;
       }
 
-      // login bem sucedido
       setModalType("success");
       setModalMessage("Login realizado com sucesso!");
       setModalOpen(true);
 
-      const token = data.token;
-      const role = data.role;
+      const { token, role, name } = data;
 
-      // salvar token/role no localStorage
+      setUser({ name, role });
+
       localStorage.setItem("token", token);
       localStorage.setItem("role", role);
+      localStorage.setItem("name", name);
 
-      // direcionar para dashboard após 1,5s
       setTimeout(() => {
         setModalOpen(false);
-        navigate(`/dashboard/${data.role.toLowerCase()}`);
       }, 1500);
     } catch (err) {
       console.error("Erro ao logar:", err);
@@ -56,6 +63,7 @@ const Login = () => {
       setModalOpen(true);
     }
   };
+
   return (
     <main className="login-container">
       <div className="login-header">

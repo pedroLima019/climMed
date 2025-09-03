@@ -2,10 +2,10 @@ import React from "react";
 import "../styles/Form.css";
 
 type InputProps = {
-  label: string;
-  type?: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  label: string,
+  type?: string,
+  value: string,
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
 };
 
 const Form: React.FC<InputProps> = ({

@@ -1,7 +1,11 @@
+import Menu from "../components/Menu";
+
 const DashboardMedico = () => {
   return (
     <section>
-      <h1>Medico</h1>
+      <nav>
+        <Menu />
+      </nav>
     </section>
   );
 };

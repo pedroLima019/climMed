@@ -21,12 +21,14 @@ const RegisterUser = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const normalizedRole = role ? role.toLowerCase() : "";
+
     const newUser = {
       name,
       email,
       password,
       role: role,
-      specialties: role === "medico" ? specialties : undefined,
+      specialties: normalizedRole === "medico" ? specialties : undefined,
     };
 
     try {
@@ -48,16 +50,14 @@ const RegisterUser = () => {
       setModalMessage("Cadastro realizado com sucesso!");
       setModalOpen(true);
 
-      // limpar formulário
       setName("");
       setEmail("");
       setPassword("");
       setSpecialties("");
 
-      // redireciona para login depois de 2 segundos
       setTimeout(() => {
         navigate("/login");
-      }, 3000);
+      }, 2000);
     } catch (err) {
       console.error("Erro ao cadastrar:", err);
       setModalType("error");

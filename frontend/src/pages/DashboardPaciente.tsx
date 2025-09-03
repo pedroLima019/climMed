@@ -1,7 +1,12 @@
+import Menu from "../components/Menu";
+import "../styles/DashboardPaciente.css";
+
 const DashboardPaciente = () => {
   return (
     <section>
-      <h1>Paciente</h1>
+      <nav>
+        <Menu />
+      </nav>
     </section>
   );
 };
