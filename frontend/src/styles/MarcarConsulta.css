@@ -1,0 +1,17 @@
+@media (min-width: 320px) {
+  .consults-container {
+    padding: 1rem;
+  }
+
+  .DoctorCard-section {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    border: 1px solid #4140405e;
+    border-radius: 10px;
+    padding: 1rem;
+    margin: 1.5rem 0;
+  }
+}

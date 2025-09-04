@@ -18,7 +18,11 @@ const Login = () => {
 
   useEffect(() => {
     if (user) {
-      navigate(`/dashboard/${user.role.toLowerCase()}`);
+      if (user.role.toLowerCase() === "patient") {
+        navigate("/MarcarConsulta/patient");
+      } else if (user.role.toLowerCase() === "doctor") {
+        navigate("/dashboard/doctor");
+      }
     }
   }, [user, navigate]);
 

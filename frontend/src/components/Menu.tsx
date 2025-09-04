@@ -1,16 +1,16 @@
 import "../styles/Menu.css";
-import { useState } from "react"; // Importe o useState
+import { useState } from "react";
 import { IoSettingsSharp } from "react-icons/io5";
 import { RiLogoutBoxLine } from "react-icons/ri";
 import { FaUserCircle } from "react-icons/fa";
 import { useUser } from "../contexts/UserContext";
 import { useNavigate, Link } from "react-router-dom";
-import { FaBars, FaTimes } from "react-icons/fa"; // Ícones para hambúrguer e fechar
+import { FaBars, FaTimes } from "react-icons/fa";
 
 const Menu: React.FC = () => {
   const { user, setUser } = useUser();
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // Novo estado
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   if (!user) return null;
 

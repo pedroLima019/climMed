@@ -4,7 +4,7 @@ import RegisterUser from "./pages/RegisterUser";
 import Login from "./pages/Login";
 import RoutesPrivate from "./routes/RoutesPrivate";
 import DashboardMedico from "./pages/DashboardMedico";
-import DashboardPaciente from "./pages/DashboardPaciente";
+import MarcarConsulta from "./pages/MarcarConsulta";
 import { UserProvider } from "./contexts/UserProvider";
 
 function App() {
@@ -17,7 +17,10 @@ function App() {
           <Route path="/login" element={<Login />} />
 
           <Route element={<RoutesPrivate role="patient" />}>
-            <Route path="/dashboard/patient" element={<DashboardPaciente />} />
+            <Route
+              path="/MarcarConsulta/patient"
+              element={<MarcarConsulta />}
+            />
           </Route>
           <Route element={<RoutesPrivate role="doctor" />}>
             <Route path="/dashboard/doctor" element={<DashboardMedico />} />

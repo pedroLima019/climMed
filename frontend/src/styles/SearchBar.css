@@ -1,0 +1,29 @@
+@media (min-width: 320px) {
+  .SearchBar-container {
+    display: flex;
+    align-items: center;
+    border: 1px solid #3a3a3a8f;
+    border-radius: 5px;
+    padding: 0.2rem;
+    width: 100%;
+    margin: 0.5rem 0;
+  }
+
+  .search-icon {
+    font-size: 15px;
+    color: #272727;
+    margin-right: 0.1rem;
+  }
+
+  .SearchBar-container input {
+    flex-grow: 1;
+    border: none;
+    outline: none;
+  }
+
+  .SearchBar-container input::placeholder {
+    margin: 0 0.2rem;
+    font-size: 12px;
+    color: #969696;
+  }
+}
