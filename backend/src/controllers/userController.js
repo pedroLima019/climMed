@@ -6,7 +6,7 @@ exports.register = async (req, res, next) => {
   try {
     const { name, email, password, role, specialties } = req.body;
 
-    const prismaRole = role === "MEDICO" ? "DOCTOR" : "PATIENT";
+    const prismaRole = role.toUpperCase() === "MEDICO" ? "DOCTOR" : "PATIENT";
 
     if (
       prismaRole === "DOCTOR" &&
@@ -67,6 +67,7 @@ exports.register = async (req, res, next) => {
 };
 
 exports.login = async (req, res, next) => {
+  console.log("Entrando na função de login...");
   try {
     const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
@@ -96,6 +97,7 @@ exports.login = async (req, res, next) => {
       message: "Login bem-sucedido",
       token,
       role: user.role,
+      name: user.name,
     });
   } catch (error) {
     next(error);
@@ -242,15 +244,6 @@ exports.updateProfile = async (req, res, next) => {
       }
     }
 
-    // const updatedUser = await prisma.user.update({
-    //   where: { id: userId },
-    //   data: {
-    //     name: name ?? undefined,
-    //     email: email ?? undefined,
-    //     phone: phone ?? undefined,
-    //   },
-    // });
-
     if (specialtyIds) {
       const doctor = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -291,5 +284,26 @@ exports.updateProfile = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+exports.getDoctors = async (req, res) => {
+  try {
+    const doctors = await prisma.user.findMany({
+      where: { role: "DOCTOR" }, // precisa bater com o enum do Prisma
+      select: {
+        id: true,
+        name: true,
+        consultationDuration: true,
+        role: true,
+      },
+    });
+
+    res.status(200).json(doctors);
+  } catch (err) {
+    console.error(err);
+    res
+      .status(500)
+      .json({ message: "Erro ao buscar médicos", error: err.message });
   }
 };

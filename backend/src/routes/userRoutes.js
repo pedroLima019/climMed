@@ -16,5 +16,6 @@ router.put(
   userControllers.updateConsultationDuration
 );
 router.put("/profile", authMiddleware, userControllers.updateProfile);
+router.get("/doctors", userControllers.getDoctors);
 
 module.exports = router;
